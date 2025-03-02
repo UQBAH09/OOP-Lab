@@ -1,54 +1,6 @@
 #include <iostream>
 #include <string>
-#include <vector>
-#include <algorithm>
 using namespace std;
-
-// Mentor class defined before Student to avoid forward declaration issues
-class Student; // Forward declaration since Mentor references Student
-
-class Mentor
-{
-private:
-    int mentorID;
-    string name;
-    vector<string> sportsExpertise;
-    int maxLearners;
-    vector<Student *> assignedLearners;
-
-public:
-    Mentor(int mentorID, string name, vector<string> sportsExpertise, int maxLearners)
-    {
-        this->mentorID = mentorID;
-        this->name = name;
-        this->sportsExpertise = sportsExpertise;
-        this->maxLearners = maxLearners;
-    }
-
-    void viewMentor()
-    {
-        cout << "Mentor name: " << name << endl;
-        cout << "Expertise: ";
-        for (const string &experty : sportsExpertise)
-        {
-            cout << experty << ", ";
-        }
-        cout << endl;
-    }
-
-    bool hasSpace()
-    {
-        return assignedLearners.size() < maxLearners;
-    }
-
-    void assignLearner(Student &s);
-    void removeLearner(int studentId);
-    void viewLearners();
-    void provideGuidance()
-    {
-        cout << "Providing guidance to assigned learners...\n";
-    }
-};
 
 class Skill
 {
@@ -58,21 +10,28 @@ private:
     string description;
 
 public:
-    Skill(int skillID, string skillName, string description)
+    Skill(int ID = 0, const string &name = "", const string &des = "") : skillID(ID), skillName(name), description(des) {}
+    Skill(const Skill &s) : skillID(s.skillID), skillName(s.skillName), description(s.description) {}
+
+    void updateSkillDescription(const string &newDescription)
     {
-        this->skillID = skillID;
-        this->skillName = skillName;
-        this->description = description;
+        description = newDescription;
+        cout << "Skill updated successfully." << endl;
     }
 
-    void showSkillDetails()
+    string getSkillName() const
+    {
+        return skillName;
+    }
+
+    void setSkillName(const string &n)
+    {
+        skillName = n;
+    }
+
+    void showSkillDetails() const
     {
         cout << "Skill ID: " << skillID << ", Name: " << skillName << ", Description: " << description << endl;
-    }
-
-    int getSkillID()
-    {
-        return skillID;
     }
 };
 
@@ -82,156 +41,329 @@ private:
     int sportID;
     string name;
     string description;
-    vector<Skill> requiredSkills;
+    Skill *requiredSkills;
+    int numOfSkills;
 
 public:
-    Sport(int sportID, string name, string description)
+    Sport(int ID = 0, const string &n = "", const string &des = "") : sportID(ID), name(n), description(des), requiredSkills(nullptr), numOfSkills(0) {}
+    Sport(const Sport &s) : sportID(s.sportID), name(s.name), description(s.description), numOfSkills(s.numOfSkills)
     {
-        this->sportID = sportID;
-        this->name = name;
-        this->description = description;
+        if (numOfSkills > 0)
+        {
+            requiredSkills = new Skill[numOfSkills];
+            for (int i = 0; i < numOfSkills; i++)
+                requiredSkills[i] = s.requiredSkills[i];
+        }
+        else
+        {
+            requiredSkills = nullptr;
+        }
+    }
+    ~Sport()
+    {
+        delete[] requiredSkills;
     }
 
-    void addSkill(Skill s)
+    void addSkill(const Skill &s)
     {
-        requiredSkills.push_back(s);
+        Skill *newArray = new Skill[numOfSkills + 1];
+        for (int i = 0; i < numOfSkills; i++)
+            newArray[i] = requiredSkills[i];
+        newArray[numOfSkills] = s;
+        delete[] requiredSkills;
+        requiredSkills = newArray;
+        numOfSkills++;
+        cout << "Skill added successfully." << endl;
     }
 
-    string getSportname()
+    void removeSkill(const Skill &s)
     {
-        return name;
+        int index = -1;
+        for (int i = 0; i < numOfSkills; i++)
+        {
+            if (requiredSkills[i].getSkillName() == s.getSkillName())
+            {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1)
+        {
+            cout << "No skill found." << endl;
+            return;
+        }
+        Skill *newArray = (numOfSkills - 1 > 0) ? new Skill[numOfSkills - 1] : nullptr;
+        for (int i = 0; i < index; i++)
+            newArray[i] = requiredSkills[i];
+        for (int i = index + 1; i < numOfSkills; i++)
+            newArray[i - 1] = requiredSkills[i];
+        delete[] requiredSkills;
+        requiredSkills = newArray;
+        numOfSkills--;
+        cout << "Skill removed successfully." << endl;
+    }
+
+    void viewDetails() const
+    {
+        cout << "Sport ID: " << sportID << ", Name: " << name << ", Description: " << description << endl;
+        cout << "Required Skills:" << endl;
+        for (int i = 0; i < numOfSkills; i++)
+            requiredSkills[i].showSkillDetails();
     }
 };
+
+class Mentor;
 
 class Student
 {
 private:
-    int studentId;
+    int studentID;
     string name;
     int age;
-    vector<Sport> sportsInterests;
+    Sport *sportsInterests;
+    int numOfSportInterests;
     Mentor *mentorAssigned;
 
 public:
-    Student(int studentID, string name, int age)
+    Student(int ID = 0, const string &n = "", int a = 0, int num = 0, Sport *SI = nullptr) : studentID(ID), name(n), age(a), numOfSportInterests(num), mentorAssigned(nullptr)
     {
-        this->studentId = studentID;
-        this->name = name;
-        this->age = age;
-        mentorAssigned = nullptr;
-    }
-
-    void registerForMentorship(Mentor &m)
-    {
-        if (m.hasSpace())
+        if (numOfSportInterests > 0 && SI != nullptr)
         {
-            m.assignLearner(*this);
-            return;
+            sportsInterests = new Sport[numOfSportInterests];
+            for (int i = 0; i < numOfSportInterests; i++)
+                sportsInterests[i] = SI[i];
         }
-        cout << "Mentor not available." << endl;
+        else
+        {
+            sportsInterests = nullptr;
+        }
     }
 
-    void viewMentorDetails()
+    Student(const Student &s) : studentID(s.studentID), name(s.name), age(s.age), numOfSportInterests(s.numOfSportInterests), mentorAssigned(s.mentorAssigned)
     {
+        if (numOfSportInterests > 0 && s.sportsInterests != nullptr)
+        {
+            sportsInterests = new Sport[numOfSportInterests];
+            for (int i = 0; i < numOfSportInterests; i++)
+                sportsInterests[i] = s.sportsInterests[i];
+        }
+        else
+        {
+            sportsInterests = nullptr;
+        }
+    }
+
+    ~Student()
+    {
+        delete[] sportsInterests;
+    }
+
+    void registerForMentorship(Mentor &m);
+    void viewMentorDetails();
+
+    void updateSportsInterest(const Sport &s)
+    {
+        Sport *newArray = new Sport[numOfSportInterests + 1];
+        for (int i = 0; i < numOfSportInterests; i++)
+            newArray[i] = sportsInterests[i];
+        newArray[numOfSportInterests] = s;
+        delete[] sportsInterests;
+        sportsInterests = newArray;
+        numOfSportInterests++;
+        cout << "Sports interest updated successfully." << endl;
+    }
+
+    void viewDetail() const
+    {
+        cout << "Student ID: " << studentID << ", Name: " << name << ", Age: " << age << endl;
+        cout << "Sports Interests:" << endl;
+        for (int i = 0; i < numOfSportInterests; i++)
+            sportsInterests[i].viewDetails();
         if (mentorAssigned)
-        {
-            mentorAssigned->viewMentor();
-            return;
-        }
-        cout << "No mentor assigned yet." << endl;
+            cout << "Mentor assigned. Use viewMentorDetails() for details." << endl;
+        else
+            cout << "No mentor assigned." << endl;
     }
 
-    void updateSportsInterest(Sport s)
+    int getID() const
     {
-        for (Sport &sport : sportsInterests)
-        {
-            if (sport.getSportname() == s.getSportname())
-            {
-                cout << "This sport is already included." << endl;
-                return;
-            }
-        }
-        sportsInterests.push_back(s);
-        cout << "Sport added successfully." << endl;
+        return studentID;
     }
 
-    int getStudentId()
+    void setMentor(Mentor *m)
     {
-        return studentId;
-    }
-
-    void viewStudent()
-    {
-        cout << "Student name: " << name << endl;
-        cout << "Student Age: " << age << endl;
-        cout << "Sport Interests: ";
-        for (size_t i = 0; i < sportsInterests.size(); i++)
-        {
-            cout << sportsInterests[i].getSportname();
-            if (i < sportsInterests.size() - 1)
-                cout << ", ";
-        }
-        cout << endl;
-    }
-
-    void removeMentor()
-    {
-        mentorAssigned = nullptr;
+        mentorAssigned = m;
     }
 };
 
-void Mentor::assignLearner(Student &s)
+class Mentor
 {
-    if (assignedLearners.size() < maxLearners)
-    {
-        assignedLearners.push_back(&s);
-        return;
-    }
-    cout << "Space not available." << endl;
-}
+private:
+    int mentorID;
+    string name;
+    Sport *sportsExpertise;
+    int numOfSportsExpertise;
+    int maxLearners;
+    int curLearners;
+    Student *assignedLearners;
 
-void Mentor::removeLearner(int studentId)
-{
-    for (auto it = assignedLearners.begin(); it != assignedLearners.end(); ++it)
+public:
+    Mentor(int ID = 0, const string &n = "", int maxL = 0, Sport *expertise = nullptr, int numExpertise = 0) : mentorID(ID), name(n), maxLearners(maxL), curLearners(0), numOfSportsExpertise(numExpertise)
     {
-        if ((*it)->getStudentId() == studentId)
+        if (numOfSportsExpertise > 0 && expertise != nullptr)
         {
-            (*it)->removeMentor();
-            assignedLearners.erase(it);
-            cout << "Mentor removed." << endl;
-            return;
+            sportsExpertise = new Sport[numOfSportsExpertise];
+            for (int i = 0; i < numOfSportsExpertise; i++)
+                sportsExpertise[i] = expertise[i];
+        }
+        else
+        {
+            sportsExpertise = nullptr;
+        }
+        assignedLearners = (maxLearners > 0) ? new Student[maxLearners] : nullptr;
+    }
+
+    Mentor(const Mentor &m) : mentorID(m.mentorID), name(m.name), maxLearners(m.maxLearners), curLearners(m.curLearners), numOfSportsExpertise(m.numOfSportsExpertise)
+    {
+        if (numOfSportsExpertise > 0 && m.sportsExpertise != nullptr)
+        {
+            sportsExpertise = new Sport[numOfSportsExpertise];
+            for (int i = 0; i < numOfSportsExpertise; i++)
+                sportsExpertise[i] = m.sportsExpertise[i];
+        }
+        else
+        {
+            sportsExpertise = nullptr;
+        }
+        if (maxLearners > 0 && m.assignedLearners != nullptr)
+        {
+            assignedLearners = new Student[maxLearners];
+            for (int i = 0; i < curLearners; i++)
+                assignedLearners[i] = m.assignedLearners[i];
+        }
+        else
+        {
+            assignedLearners = nullptr;
         }
     }
-    cout << "Student not found." << endl;
+
+    ~Mentor()
+    {
+        delete[] sportsExpertise;
+        delete[] assignedLearners;
+    }
+
+    void assignLearner(const Student &s)
+    {
+        if (curLearners < maxLearners)
+        {
+            assignedLearners[curLearners] = s;
+            curLearners++;
+            cout << "Student assigned successfully." << endl;
+        }
+        else
+        {
+            cout << "Max student limit reached." << endl;
+        }
+    }
+
+    void removeLearner(const Student &s)
+    {
+        int index = -1;
+        for (int i = 0; i < curLearners; i++)
+        {
+            if (assignedLearners[i].getID() == s.getID())
+            {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1)
+        {
+            cout << "Student not found." << endl;
+            return;
+        }
+        for (int i = index; i < curLearners - 1; i++)
+            assignedLearners[i] = assignedLearners[i + 1];
+        curLearners--;
+        cout << "Student removed successfully." << endl;
+    }
+
+    void viewLearners() const
+    {
+        cout << "Mentor " << name << " has the following learners:" << endl;
+        for (int i = 0; i < curLearners; i++)
+            assignedLearners[i].viewDetail();
+    }
+
+    void provideGuidance() const
+    {
+        cout << "Providing guidance..." << endl;
+    }
+
+    bool available() const
+    {
+        return curLearners < maxLearners;
+    }
+
+    void viewDetails() const
+    {
+        cout << "Mentor ID: " << mentorID << ", Name: " << name << endl;
+        cout << "Sports Expertise:" << endl;
+        for (int i = 0; i < numOfSportsExpertise; i++)
+            sportsExpertise[i].viewDetails();
+    }
+};
+
+void Student::registerForMentorship(Mentor &m)
+{
+    if (m.available())
+    {
+        mentorAssigned = &m;
+        cout << "Mentor assigned successfully." << endl;
+        m.assignLearner(*this);
+    }
+    else
+    {
+        cout << "Mentor is full." << endl;
+    }
 }
 
-void Mentor::viewLearners()
+void Student::viewMentorDetails()
 {
-    for (Student *student : assignedLearners)
-    {
-        student->viewStudent();
-    }
+    if (mentorAssigned)
+        mentorAssigned->viewDetails();
+    else
+        cout << "No mentor assigned." << endl;
 }
 
 int main()
 {
-    Skill skill1(1, "Serving", "Master the art of serving in tennis.");
-    Skill skill2(2, "Volley", "Learn how to volley effectively.");
+    // Create some skills
+    Skill s1(1, "Dribbling", "Ability to control the ball");
+    Skill s2(2, "Shooting", "Ability to shoot accurately");
 
-    Sport tennis(1, "Tennis", "A racket sport that can be played individually or in pairs.");
-    tennis.addSkill(skill1);
-    tennis.addSkill(skill2);
+    // Create a sport (e.g., Tennis) and add skills
+    Sport tennis(101, "Tennis", "A racket sport");
+    tennis.addSkill(s1);
+    tennis.addSkill(s2);
 
-    vector<string> expertise = {"Tennis", "Badminton"};
-    Mentor mentor1(1, "Ali", expertise, 3);
+    // Create a student with Tennis as an interest
+    Sport interests[1] = {tennis};
+    Student student1(1001, "Saad", 20, 1, interests);
 
-    Student student1(1, "Saad", 20);
-    student1.updateSportsInterest(tennis);
+    // Create a mentor with capacity 3 and Tennis expertise
+    Sport expertise[1] = {tennis};
+    Mentor mentor1(501, "Ali", 3, expertise, 1);
+
+    // Register the student for mentorship
     student1.registerForMentorship(mentor1);
 
+    // View mentor details from the student’s perspective
+    student1.viewMentorDetails();
+
+    // View the mentor’s learners
     mentor1.viewLearners();
-    mentor1.provideGuidance();
-    mentor1.removeLearner(student1.getStudentId());
 
     return 0;
 }
